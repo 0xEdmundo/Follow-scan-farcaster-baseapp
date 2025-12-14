@@ -80,63 +80,6 @@ export function GMStreak() {
         hash: txHash,
     });
 
-    // ... (keep useEffects same)
-
-    const handleGM = async () => {
-        if (!canGM || !isConnected || !publicClient || !address) return;
-
-        try {
-            // Encode function data
-            const encodedData = encodeFunctionData({
-                abi: GM_STREAK_ABI,
-                functionName: 'sayGM'
-            });
-
-            // Generate attribution suffix
-            const dataSuffix = Attribution.toDataSuffix({
-                codes: [builderCode]
-            });
-
-            // Append suffix
-            const dataWithSuffix = (encodedData + dataSuffix.slice(2)) as `0x${string}`;
-
-            // 1. Simulate Check
-            try {
-                await publicClient.call({
-                    account: address,
-                    to: CONTRACTS.GM_STREAK_ADDRESS,
-                    data: dataWithSuffix
-                });
-            } catch (simError: any) {
-                console.log('Simulation failed:', simError);
-                // If simulation fails with the specific error, we know they already GM'd
-                if (simError?.message?.includes('Daha yeni GM dedin') ||
-                    JSON.stringify(simError).includes('Daha yeni GM dedin')) {
-
-                    // Update local state immediately
-                    setCanGM(false);
-                    const nowSeconds = Math.floor(Date.now() / 1000);
-                    localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
-                    setTimeRemaining(calculateTimeRemaining());
-                    refetchLastGM();
-                    return; // Stop execution, don't open wallet
-                }
-                // If other error, maybe still try? Or throw?
-                // Let's rely on the wallet for other errors, or just log.
-            }
-
-            console.log('Sending transaction with builder code:', builderCode);
-
-            sendTransaction({
-                to: CONTRACTS.GM_STREAK_ADDRESS,
-                data: dataWithSuffix
-            });
-        } catch (error: any) {
-            // Fallback for user rejection or other errors
-            console.error('GM failed:', error);
-        }
-    };
-
     // Helper to check same day UTC
     const isSameUTCDay = (timestamp: number) => {
         const date = new Date(timestamp * 1000);
