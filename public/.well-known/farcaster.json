@@ -1,14 +1,7 @@
 {
-    "accountAssociation": {
-        "header": "eyJmaWQiOjkyMzI2NSwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDdDMzZBNUM3MDk3ZEUzZWQ5M0NhRERhRDNDOTcwMzk2NDJlZTkwNjAifQ",
-        "payload": "eyJkb21haW4iOiJmb2xsb3dzY2FuLnZlcmNlbC5hcHAifQ",
-        "signature": "6c2jDpIlR4yTkzgDUGEcNjc8YEjptg4y/RCqqDMdNqwfBk8Qt32sGKdAPfgWV19VHFJzy/n1M7Js/kygniFiCRs="
-    },
-    "frame": {
+    "miniapp": {
         "version": "1",
         "name": "Follow Scan",
-        "subtitle": "Farcaster Follow Analyzer",
-        "description": "Analyze your Farcaster follow relationships. Find who does not follow you back, discover mutual follows, and track your Neynar score.",
         "iconUrl": "https://followscan.vercel.app/icon.jpg",
         "homeUrl": "https://followscan.vercel.app",
         "imageUrl": "https://followscan.vercel.app/og-image.jpg",
@@ -16,6 +9,12 @@
         "splashImageUrl": "https://followscan.vercel.app/splash.png",
         "splashBackgroundColor": "#7C3AED",
         "webhookUrl": "https://followscan.vercel.app/api/webhook",
+        "castShareUrl": "https://followscan.vercel.app",
+        "subtitle": "Farcaster Follow Analyzer",
+        "description": "Analyze your Farcaster follow relationships. Find who does not follow you back, discover mutual follows, and track your Neynar score.",
+        "ogTitle": "Follow Scan",
+        "ogDescription": "Analyze your Farcaster follow relationships. Find unfollowers and mutual follows.",
+        "ogImageUrl": "https://followscan.vercel.app/og-image.jpg",
         "primaryCategory": "social",
         "tags": [
             "farcaster",
@@ -26,9 +25,14 @@
         ],
         "tagline": "Know Your Followers",
         "heroImageUrl": "https://followscan.vercel.app/og-image.jpg",
-        "ogTitle": "Follow Scan",
-        "ogDescription": "Analyze your Farcaster follow relationships. Find unfollowers and mutual follows.",
-        "ogImageUrl": "https://followscan.vercel.app/og-image.jpg",
         "noindex": false
+    },
+    "baseBuilder": {
+        "ownerAddress": "0xFb7C003C4F1E98AA449A771F59acf9d876EA9e2c"
+    },
+    "accountAssociation": {
+        "header": "eyJmaWQiOjkyMzI2NSwidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDdDMzZBNUM3MDk3ZEUzZWQ5M0NhRERhRDNDOTcwMzk2NDJlZTkwNjAifQ",
+        "payload": "eyJkb21haW4iOiJmb2xsb3dzY2FuLnZlcmNlbC5hcHAifQ",
+        "signature": "6c2jDpIlR4yTkzgDUGEcNjc8YEjptg4y/RCqqDMdNqwfBk8Qt32sGKdAPfgWV19VHFJzy/n1M7Js/kygniFiCRs="
     }
 }
