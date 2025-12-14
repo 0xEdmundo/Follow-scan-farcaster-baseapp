@@ -421,20 +421,17 @@ export function FollowScan({ initialFid }: FollowScanProps) {
 
                 {/* Big Stats Card */}
                 {hasScanned && (
-                    <Card className="mb-6 border-red-300 dark:border-red-800 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 shadow-xl">
-                        <CardContent className="pt-6">
+                    <Card className="mb-4 border-red-300 dark:border-red-800 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 shadow-xl">
+                        <CardContent className="p-4">
                             <div className="text-center">
-                                <div className="mb-2">
-                                    <span className="text-6xl">💔</span>
+                                <div className="mb-1">
+                                    <span className="text-4xl">💔</span>
                                 </div>
-                                <h2 className="text-4xl font-extrabold text-red-700 dark:text-red-400 mb-2">
+                                <h2 className="text-3xl font-extrabold text-red-700 dark:text-red-400 mb-1">
                                     {notFollowingBack.length.toLocaleString()}
                                 </h2>
-                                <p className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+                                <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
                                     Not Following You Back
-                                </p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                                    Users you follow who don&apos;t follow you back
                                 </p>
                             </div>
                         </CardContent>
@@ -445,27 +442,36 @@ export function FollowScan({ initialFid }: FollowScanProps) {
                 {hasScanned && (
                     <>
                         {/* Tab Options */}
-                        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                        <div className="grid grid-cols-3 gap-2 mb-4">
                             <Button
                                 onClick={() => setActiveTab('notFollowingBack')}
                                 variant={activeTab === 'notFollowingBack' ? 'default' : 'outline'}
-                                className={activeTab === 'notFollowingBack' ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600' : ''}
+                                className={`px-1 h-auto py-2 ${activeTab === 'notFollowingBack' ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600' : ''}`}
                             >
-                                💔 Not Following ({notFollowingBack.length})
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs sm:text-sm">💔 Unfollowers</span>
+                                    <span className="text-xs opacity-80">({notFollowingBack.length})</span>
+                                </div>
                             </Button>
                             <Button
                                 onClick={() => setActiveTab('mutualFollows')}
                                 variant={activeTab === 'mutualFollows' ? 'default' : 'outline'}
-                                className={activeTab === 'mutualFollows' ? 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600' : ''}
+                                className={`px-1 h-auto py-2 ${activeTab === 'mutualFollows' ? 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600' : ''}`}
                             >
-                                💚 Mutual ({mutualFollows.length})
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs sm:text-sm">💚 Mutual</span>
+                                    <span className="text-xs opacity-80">({mutualFollows.length})</span>
+                                </div>
                             </Button>
                             <Button
                                 onClick={() => setActiveTab('youDontFollow')}
                                 variant={activeTab === 'youDontFollow' ? 'default' : 'outline'}
-                                className={activeTab === 'youDontFollow' ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600' : ''}
+                                className={`px-1 h-auto py-2 ${activeTab === 'youDontFollow' ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600' : ''}`}
                             >
-                                👥 Fans ({youDontFollow.length})
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs sm:text-sm">👥 Fans</span>
+                                    <span className="text-xs opacity-80">({youDontFollow.length})</span>
+                                </div>
                             </Button>
                         </div>
 
