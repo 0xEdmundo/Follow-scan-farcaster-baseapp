@@ -39,7 +39,8 @@ export const metadata: Metadata = {
     "fc:frame:button:1:action": "launch_frame",
     "fc:frame:button:1:target": "https://followscan.vercel.app",
     "base:app_id": "693ed644d19763ca26ddc2d3"
-  }
+  },
+  manifest: "/manifest.json"
 };
 
 export default function RootLayout({

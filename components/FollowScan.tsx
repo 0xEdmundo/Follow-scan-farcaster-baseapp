@@ -50,8 +50,6 @@ export function FollowScan({ initialFid }: FollowScanProps) {
     const [dataError, setDataError] = useState<string>('');
     const [sortBy, setSortBy] = useState<SortOption>('score');
     const [activeTab, setActiveTab] = useState<TabOption>('notFollowingBack');
-    const [showAddPrompt, setShowAddPrompt] = useState(false);
-    const [isFrameAdded, setIsFrameAdded] = useState(false);
     const [showTipModal, setShowTipModal] = useState(false);
 
     // Auto-connect wallet
@@ -74,30 +72,8 @@ export function FollowScan({ initialFid }: FollowScanProps) {
         if (!sdk) return;
         try {
             await sdk.actions.ready();
-
-            // Check if already added
-            const context = await sdk.context;
-            if (context?.client?.added === false) {
-                setShowAddPrompt(true);
-            } else if (context?.client?.added) {
-                setIsFrameAdded(true);
-            }
         } catch (error) {
             console.log('Not in Farcaster frame context');
-        }
-    };
-
-    const handleAddFrame = async () => {
-        if (!sdk) return;
-        try {
-            const result = await sdk.actions.addFrame();
-            if (result?.added) {
-                setIsFrameAdded(true);
-                setShowAddPrompt(false);
-                console.log('Frame added! Notification token:', result.notificationDetails?.token);
-            }
-        } catch (error) {
-            console.error('Failed to add frame:', error);
         }
     };
 

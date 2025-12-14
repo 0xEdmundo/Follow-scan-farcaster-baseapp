@@ -1,0 +1,21 @@
+{
+    "name": "Follow Scan",
+    "short_name": "FollowScan",
+    "description": "Analyze your Farcaster follow relationships. Find who doesn't follow you back, discover mutual follows, and track your Neynar score.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#7C3AED",
+    "icons": [
+        {
+            "src": "https://followscan.vercel.app/icon.jpg",
+            "sizes": "192x192",
+            "type": "image/jpeg"
+        },
+        {
+            "src": "https://followscan.vercel.app/icon.jpg",
+            "sizes": "512x512",
+            "type": "image/jpeg"
+        }
+    ]
+}
