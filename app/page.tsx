@@ -5,7 +5,6 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import sdk from '@farcaster/frame-sdk';
 
 function FollowScanContent() {
   const searchParams = useSearchParams();
@@ -17,6 +16,9 @@ function FollowScanContent() {
   useEffect(() => {
     const initFrame = async () => {
       try {
+        // Dynamically import SDK to avoid SSR issues
+        const sdk = (await import('@farcaster/frame-sdk')).default;
+
         // Call ready first to dismiss splash screen
         await sdk.actions.ready();
 

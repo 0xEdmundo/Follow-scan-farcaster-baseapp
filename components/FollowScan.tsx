@@ -8,13 +8,7 @@ import { GMStreak } from '@/components/GMStreak';
 import { TipModal } from '@/components/TipModal';
 import { useAccount, useConnect } from 'wagmi';
 
-// Farcaster SDK - try/catch for non-frame contexts
-let sdk: any = null;
-try {
-    sdk = require('@farcaster/frame-sdk').default;
-} catch (e) {
-    console.log('Farcaster SDK not available');
-}
+
 
 interface UserProfile {
     fid: number;
@@ -65,17 +59,9 @@ export function FollowScan({ initialFid }: FollowScanProps) {
 
     useEffect(() => {
         loadUserProfile(initialFid);
-        initFarcaster();
     }, [initialFid]);
 
-    const initFarcaster = async () => {
-        if (!sdk) return;
-        try {
-            await sdk.actions.ready();
-        } catch (error) {
-            console.log('Not in Farcaster frame context');
-        }
-    };
+
 
     const loadUserProfile = async (fid: number): Promise<void> => {
         setIsLoadingProfile(true);
