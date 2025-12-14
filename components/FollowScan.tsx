@@ -72,7 +72,7 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
 
         try {
             console.log('[FollowScan] Loading user profile...');
-            const response = await fetch(`/api/farcaster/user?fid=${fid}`);
+            const response = await fetch(`/api/farcaster/user?fid=${fid}&t=${Date.now()}`);
             const data = await response.json();
 
             if (data.user) {
@@ -111,8 +111,8 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
 
         try {
             const [followersResponse, followingResponse] = await Promise.all([
-                fetch(`/api/farcaster/followers?fid=${initialFid}`),
-                fetch(`/api/farcaster/following?fid=${initialFid}`)
+                fetch(`/api/farcaster/followers?fid=${initialFid}&t=${Date.now()}`),
+                fetch(`/api/farcaster/following?fid=${initialFid}&t=${Date.now()}`)
             ]);
 
             const followersData = await followersResponse.json();
