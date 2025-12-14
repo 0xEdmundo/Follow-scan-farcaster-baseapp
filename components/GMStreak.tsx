@@ -10,11 +10,12 @@ import { encodeFunctionData } from 'viem';
 export function GMStreak() {
     const { address, isConnected, isConnecting } = useAccount();
     const { connect, connectors } = useConnect();
-    const [canGM, setCanGM] = useState(true);
+    const [canGM, setCanGM] = useState(false);
     const [streak, setStreak] = useState(0);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isInFrame, setIsInFrame] = useState(false);
     const [timeRemaining, setTimeRemaining] = useState<string>('');
+    const [isChecking, setIsChecking] = useState(true);
 
     // Auto-connect wallet in Farcaster/Base context
     useEffect(() => {
@@ -59,7 +60,7 @@ export function GMStreak() {
     });
 
     // Read last GM timestamp
-    const { data: lastGMData, refetch: refetchLastGM } = useReadContract({
+    const { data: lastGMData, refetch: refetchLastGM, isLoading: isLastGMLoading } = useReadContract({
         address: CONTRACTS.GM_STREAK_ADDRESS,
         abi: GM_STREAK_ABI,
         functionName: 'getLastGM',
@@ -86,14 +87,20 @@ export function GMStreak() {
 
     useEffect(() => {
         const updateStatus = () => {
-            if (lastGMData) {
+            if (isLastGMLoading) {
+                setIsChecking(true);
+                return;
+            }
+
+            if (lastGMData !== undefined) { // Check for undefined explicitly
                 const lastGM = Number(lastGMData);
                 if (lastGM === 0) {
                     setCanGM(true);
                     setTimeRemaining('');
                 } else {
                     const lastGMDate = new Date(lastGM * 1000);
-                    const now = new Date();
+                    const now = new Date(); // Browser time (local)
+                    // We need to check UTC days strictly as per request
 
                     const isSameDay =
                         lastGMDate.getUTCFullYear() === now.getUTCFullYear() &&
@@ -104,6 +111,7 @@ export function GMStreak() {
 
                     if (isSameDay) {
                         const tomorrow = new Date();
+                        // Set tomorrow to next UTC midnight
                         tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
                         tomorrow.setUTCHours(0, 0, 0, 0);
 
@@ -111,21 +119,28 @@ export function GMStreak() {
                         if (diff > 0) {
                             const hours = Math.floor(diff / (1000 * 60 * 60));
                             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            // Only update time remaining if > 0
                             setTimeRemaining(`${hours}h ${minutes}m`);
                         } else {
+                            // If countdown is zero/negative but page hasn't refreshed, technically we should be able to GM.
+                            // But usually we need to refetch to confirm.
                             refetchLastGM();
                         }
                     } else {
                         setTimeRemaining('');
                     }
                 }
+                setIsChecking(false);
+            } else if (!isLastGMLoading && address) {
+                // If loaded but data is undefined/error, assume safe default or keep loading
+                // setIsChecking(false); 
             }
         };
 
         updateStatus();
         const interval = setInterval(updateStatus, 60000);
         return () => clearInterval(interval);
-    }, [lastGMData, refetchLastGM]);
+    }, [lastGMData, refetchLastGM, isLastGMLoading, address]);
 
     useEffect(() => {
         if (isSuccess) {
@@ -220,13 +235,18 @@ export function GMStreak() {
                     )}
                     <Button
                         onClick={handleGM}
-                        disabled={!canGM || isPending || isConfirming}
-                        className={`${canGM
+                        disabled={!canGM || isPending || isConfirming || isChecking}
+                        className={`${canGM && !isChecking
                             ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
                             : 'bg-gray-300 dark:bg-gray-700'
                             } text-white font-bold px-6 min-w-[150px]`}
                     >
-                        {isPending || isConfirming ? (
+                        {isChecking ? (
+                            <span className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Loading...
+                            </span>
+                        ) : isPending || isConfirming ? (
                             <span className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Sending...
