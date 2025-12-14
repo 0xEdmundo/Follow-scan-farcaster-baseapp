@@ -1,13 +1,20 @@
 {
     "frame": {
-        "version": "1",
+        "version": "next",
         "name": "Follow Scan",
         "iconUrl": "https://followscan.vercel.app/icon.jpg",
         "homeUrl": "https://followscan.vercel.app",
         "imageUrl": "https://followscan.vercel.app/preview-v2.jpg",
-        "buttonTitle": "Scan Follow Backs",
-        "splashImageUrl": "https://followscan.vercel.app/splash.png",
-        "splashBackgroundColor": "#7C3AED",
+        "button": {
+            "title": "Scan Follow Backs",
+            "action": {
+                "type": "launch_frame",
+                "name": "Follow Scan",
+                "url": "https://followscan.vercel.app",
+                "splashImageUrl": "https://followscan.vercel.app/splash.png",
+                "splashBackgroundColor": "#7C3AED"
+            }
+        },
         "webhookUrl": "https://followscan.vercel.app/api/webhook",
         "castShareUrl": "https://followscan.vercel.app",
         "subtitle": "Farcaster Follow Analyzer",
