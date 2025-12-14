@@ -150,7 +150,14 @@ function FollowScanContent() {
     );
   }
 
-  return <FollowScan initialFid={fid} isFrameAdded={isFrameAdded} onAddFrame={onAddFrame} />;
+  // Pass openUrl handler
+  const openUrl = (url: string) => {
+    import('@farcaster/frame-sdk').then((sdkModule) => {
+      sdkModule.default.actions.openUrl(url);
+    });
+  };
+
+  return <FollowScan initialFid={fid} isFrameAdded={isFrameAdded} onAddFrame={onAddFrame} openUrl={openUrl} />;
 }
 
 function LoadingSpinner() {

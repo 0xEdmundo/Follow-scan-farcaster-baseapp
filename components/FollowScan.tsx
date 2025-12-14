@@ -25,12 +25,13 @@ interface FollowScanProps {
     initialFid: number;
     isFrameAdded?: boolean;
     onAddFrame?: () => void;
+    openUrl?: (url: string) => void;
 }
 
 type SortOption = 'username' | 'followers' | 'fid' | 'score';
 type TabOption = 'notFollowingBack' | 'mutualFollows' | 'youDontFollow';
 
-export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame }: FollowScanProps) {
+export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUrl }: FollowScanProps) {
     const { address, isConnected } = useAccount();
     const { connect, connectors } = useConnect();
 
@@ -256,8 +257,13 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame }: Foll
     };
 
     const openProfile = useCallback((username: string) => {
-        window.open(`https://warpcast.com/${username}`, '_blank');
-    }, []);
+        const url = `https://warpcast.com/${username}`;
+        if (openUrl) {
+            openUrl(url);
+        } else {
+            window.open(url, '_blank');
+        }
+    }, [openUrl]);
 
     const getScoreColor = (score: number): string => {
         if (score >= 0.8) return 'text-green-500 dark:text-green-400';
