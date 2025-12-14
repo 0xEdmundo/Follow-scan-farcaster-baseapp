@@ -21,14 +21,17 @@ const baseWithPaymaster = {
 };
 
 // Create wagmi config with Farcaster Frame connector and Paymaster
+const connectors = [];
+if (typeof window !== 'undefined') {
+    connectors.push(farcasterFrame());
+}
+
 const config = createConfig({
     chains: [baseWithPaymaster],
     transports: {
         [base.id]: http(PAYMASTER_URL),
     },
-    connectors: [
-        farcasterFrame(),
-    ],
+    connectors,
 });
 
 export function Web3Provider({ children }: { children: ReactNode }) {
