@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://followscan.vercel.app/og-image.jpg",
+        url: "https://followscan.vercel.app/preview-v2.jpg",
         width: 1200,
         height: 630,
         alt: "Follow Scan"
@@ -25,19 +25,13 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Follow Scan - Check Your Unfollowers",
     description: "Find out who doesn't follow you back on Farcaster",
-    images: ["https://followscan.vercel.app/og-image.jpg"]
+    images: ["https://followscan.vercel.app/preview-v2.jpg"]
   },
   icons: {
     icon: "/icon.jpg",
     apple: "/icon.jpg"
   },
   other: {
-    "fc:frame": "vNext",
-    "fc:frame:image": "https://followscan.vercel.app/og-image.jpg",
-    "fc:frame:image:aspect_ratio": "1.91:1",
-    "fc:frame:button:1": "Scan Follow Backs",
-    "fc:frame:button:1:action": "launch_frame",
-    "fc:frame:button:1:target": "https://followscan.vercel.app",
     "base:app_id": "693ed644d19763ca26ddc2d3"
   },
   manifest: "/manifest.json"

@@ -4,7 +4,7 @@
         "name": "Follow Scan",
         "iconUrl": "https://followscan.vercel.app/icon.jpg",
         "homeUrl": "https://followscan.vercel.app",
-        "imageUrl": "https://followscan.vercel.app/og-image.jpg",
+        "imageUrl": "https://followscan.vercel.app/preview-v2.jpg",
         "buttonTitle": "Scan Follow Backs",
         "splashImageUrl": "https://followscan.vercel.app/splash.png",
         "splashBackgroundColor": "#7C3AED",
