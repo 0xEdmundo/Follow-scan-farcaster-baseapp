@@ -32,12 +32,20 @@ export const metadata: Metadata = {
     apple: "/icon.jpg"
   },
   other: {
-    "fc:frame": "vNext",
-    "fc:frame:image": "https://followscan.vercel.app/preview-v2.jpg",
-    "fc:frame:image:aspect_ratio": "1.91:1",
-    "fc:frame:button:1": "Scan Follow Backs",
-    "fc:frame:button:1:action": "launch_frame",
-    "fc:frame:button:1:target": "https://followscan.vercel.app",
+    "fc:frame": JSON.stringify({
+      version: "next",
+      imageUrl: "https://followscan.vercel.app/preview-v2.jpg",
+      button: {
+        title: "Scan Follow Backs",
+        action: {
+          type: "launch_frame",
+          name: "Follow Scan",
+          url: "https://followscan.vercel.app",
+          splashImageUrl: "https://followscan.vercel.app/splash.png",
+          splashBackgroundColor: "#7C3AED"
+        }
+      }
+    }),
     "base:app_id": "693ed644d19763ca26ddc2d3"
   },
   manifest: "/manifest.json"
