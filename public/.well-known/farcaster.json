@@ -13,6 +13,14 @@
         "buttonTitle": "Check Unfollowers",
         "splashImageUrl": "https://followscan.vercel.app/splash.png",
         "splashBackgroundColor": "#7C3AED",
-        "webhookUrl": "https://followscan.vercel.app/api/webhook"
+        "webhookUrl": "https://followscan.vercel.app/api/webhook",
+        "primaryCategory": "social",
+        "tags": [
+            "farcaster",
+            "followers",
+            "analytics",
+            "social",
+            "base"
+        ]
     }
 }
