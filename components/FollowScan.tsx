@@ -437,7 +437,7 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                                 </p>
                                 <Button
                                     onClick={() => {
-                                        const text = `I found ${notFollowingBack.length} users who don't follow me back. Check your status here 👇`;
+                                        const text = `I found ${notFollowingBack.length} users who don't follow me back. 💔\n\nAlso keeping my GM streak alive with free daily transactions! ⚡\n\nCheck yours 👇`;
                                         const embedUrl = 'https://followscan.vercel.app';
                                         const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embedUrl)}`;
 
