@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useConnect, useSendTransaction } from 'wagmi';
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useConnect, useSendTransaction, usePublicClient } from 'wagmi';
 import { CONTRACTS, GM_STREAK_ABI } from '@/lib/web3-config';
 import { Button } from '@/components/ui/button';
 import { Attribution } from 'ox/erc8021';
@@ -73,11 +73,69 @@ export function GMStreak() {
     // Write sayGM transaction (sponsored by Coinbase Paymaster) with Builder Code
     const { sendTransaction, data: txHash, isPending } = useSendTransaction();
     const builderCode = "bc_xvyf9fz7";
+    const publicClient = usePublicClient();
 
     // Wait for transaction
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
         hash: txHash,
     });
+
+    // ... (keep useEffects same)
+
+    const handleGM = async () => {
+        if (!canGM || !isConnected || !publicClient || !address) return;
+
+        try {
+            // Encode function data
+            const encodedData = encodeFunctionData({
+                abi: GM_STREAK_ABI,
+                functionName: 'sayGM'
+            });
+
+            // Generate attribution suffix
+            const dataSuffix = Attribution.toDataSuffix({
+                codes: [builderCode]
+            });
+
+            // Append suffix
+            const dataWithSuffix = (encodedData + dataSuffix.slice(2)) as `0x${string}`;
+
+            // 1. Simulate Check
+            try {
+                await publicClient.call({
+                    account: address,
+                    to: CONTRACTS.GM_STREAK_ADDRESS,
+                    data: dataWithSuffix
+                });
+            } catch (simError: any) {
+                console.log('Simulation failed:', simError);
+                // If simulation fails with the specific error, we know they already GM'd
+                if (simError?.message?.includes('Daha yeni GM dedin') ||
+                    JSON.stringify(simError).includes('Daha yeni GM dedin')) {
+
+                    // Update local state immediately
+                    setCanGM(false);
+                    const nowSeconds = Math.floor(Date.now() / 1000);
+                    localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
+                    setTimeRemaining(calculateTimeRemaining());
+                    refetchLastGM();
+                    return; // Stop execution, don't open wallet
+                }
+                // If other error, maybe still try? Or throw?
+                // Let's rely on the wallet for other errors, or just log.
+            }
+
+            console.log('Sending transaction with builder code:', builderCode);
+
+            sendTransaction({
+                to: CONTRACTS.GM_STREAK_ADDRESS,
+                data: dataWithSuffix
+            });
+        } catch (error: any) {
+            // Fallback for user rejection or other errors
+            console.error('GM failed:', error);
+        }
+    };
 
     // Helper to check same day UTC
     const isSameUTCDay = (timestamp: number) => {
@@ -230,7 +288,7 @@ export function GMStreak() {
     }, [isSuccess, refetchStreak, refetchLastGM, address]);
 
     const handleGM = async () => {
-        if (!canGM || !isConnected) return;
+        if (!canGM || !isConnected || !publicClient || !address) return;
 
         try {
             // Encode function data
@@ -244,10 +302,31 @@ export function GMStreak() {
                 codes: [builderCode]
             });
 
-            // Append suffix (strip 0x from suffix if present, but ox/erc8021 usually returns plain bytes or 0x prefixed. 
-            // The docs say: encoded + dataSuffix.slice(2). verify dataSuffix starts with 0x.
-            // Ox attribution returns 0x prefixed hex string.
+            // Append suffix
             const dataWithSuffix = (encodedData + dataSuffix.slice(2)) as `0x${string}`;
+
+            // 1. Simulate Check
+            try {
+                await publicClient.call({
+                    account: address,
+                    to: CONTRACTS.GM_STREAK_ADDRESS,
+                    data: dataWithSuffix
+                });
+            } catch (simError: any) {
+                console.log('Simulation failed:', simError);
+                // If simulation fails with the specific error, we know they already GM'd
+                if (simError?.message?.includes('Daha yeni GM dedin') ||
+                    JSON.stringify(simError).includes('Daha yeni GM dedin')) {
+
+                    // Update local state immediately
+                    setCanGM(false);
+                    const nowSeconds = Math.floor(Date.now() / 1000);
+                    localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
+                    setTimeRemaining(calculateTimeRemaining());
+                    refetchLastGM();
+                    return; // Stop execution, don't open wallet
+                }
+            }
 
             console.log('Sending transaction with builder code:', builderCode);
 
@@ -257,21 +336,6 @@ export function GMStreak() {
             });
         } catch (error: any) {
             console.error('GM failed:', error);
-            // Check for specific revert string to update UI
-            if (error?.message?.includes('Daha yeni GM dedin') ||
-                JSON.stringify(error).includes('Daha yeni GM dedin')) {
-
-                // Update local state immediately
-                setCanGM(false);
-                if (address) {
-                    const nowSeconds = Math.floor(Date.now() / 1000);
-                    localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
-                }
-                setTimeRemaining(calculateTimeRemaining());
-
-                // Refresh data
-                refetchLastGM();
-            }
         }
     };
 
