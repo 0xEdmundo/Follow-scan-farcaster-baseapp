@@ -320,35 +320,7 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame }: Foll
                 </div>
             </header>
 
-            {/* Add Frame Prompt */}
-            {showAddPrompt && !isFrameAdded && onAddFrame && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mx-4 max-w-sm shadow-2xl animate-in fade-in zoom-in duration-300">
-                        <div className="text-center">
-                            <img src="/splash.png" alt="Follow Scan" className="w-20 h-20 mx-auto mb-4 animate-pulse" />
-                            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Add Follow Scan</h2>
-                            <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
-                                Add this mini app to get notifications about your followers!
-                            </p>
-                            <div className="flex gap-3">
-                                <Button
-                                    onClick={() => setShowAddPrompt(false)}
-                                    variant="outline"
-                                    className="flex-1"
-                                >
-                                    Later
-                                </Button>
-                                <Button
-                                    onClick={onAddFrame}
-                                    className="flex-1 bg-purple-600 hover:bg-purple-700"
-                                >
-                                    Add App
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+
 
             <div className="container mx-auto px-4 py-6 max-w-6xl">
                 {/* User Profile Card */}

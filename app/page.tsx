@@ -30,12 +30,19 @@ function FollowScanContent() {
           setContextFid(context.user.fid);
         }
 
-        // Check if frame is added
+        // Check if frame is added and trigger prompt if not
         if (context?.client?.added) {
           setIsFrameAdded(true);
+        } else {
+          // Auto-trigger native Add App prompt
+          try {
+            sdk.actions.addFrame();
+          } catch (e) {
+            console.error('Failed to trigger addFrame:', e);
+          }
         }
 
-        // Set add frame handler
+        // Set add frame handler (optional fallback)
         const handleAdd = () => {
           sdk.actions.addFrame();
         };
