@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Follow Scan
 
-## Getting Started
+Analyze your Farcaster follow relationships. Find who doesn't follow you back, discover mutual follows, and see Neynar scores for better insights.
 
-First, run the development server:
+![Follow Scan Preview](/public/og-image.jpg)
+
+## 🚀 Features
+
+- **Not Following Back**: See users you follow who don't follow you back 💔
+- **Mutual Follows**: View your mutual connections 💚
+- **Fans**: Discover people who follow you but you don't follow back 👥
+- **Neynar Score**: See quality scores for each user ⭐
+- **Visit Profile**: Quick link to view profiles on Warpcast
+- **Dark/Light Mode**: Toggle between themes 🌓
+- **Farcaster Mini App**: Add to your Farcaster for notifications
+- **Sorting**: Sort by score, followers, username, or FID
+
+## 📦 Installation
+
+```bash
+npm install
+```
+
+## ⚙️ Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+NEYNAR_API_KEY=your_neynar_api_key_here
+```
+
+> **Note**: The app includes a default API key for testing. For production, use your own Neynar API key from [neynar.com](https://neynar.com).
+
+## 🏃 Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Add your Farcaster FID to the URL:
+```
+http://localhost:3000?fid=YOUR_FID
+```
 
-## Learn More
+Example:
+```
+http://localhost:3000?fid=3
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🏗️ Build
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Project Structure
 
-## Deploy on Vercel
+```
+follow-scan/
+├── app/
+│   ├── api/
+│   │   └── farcaster/
+│   │       ├── followers/route.ts   # Followers API with Neynar Score
+│   │       ├── following/route.ts   # Following API with Neynar Score
+│   │       └── user/route.ts        # User profile API
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── FollowScan.tsx       # Main component
+│   ├── Providers.tsx        # Theme provider
+│   ├── ThemeToggle.tsx      # Dark/Light mode toggle
+│   └── ui/
+│       ├── button.tsx
+│       └── card.tsx
+├── lib/
+│   ├── farcaster-hooks.ts   # Farcaster SDK hooks
+│   └── neynar-config.ts     # API configuration
+├── public/
+│   ├── og-image.jpg         # Open Graph preview image
+│   ├── icon.jpg             # App icon
+│   ├── splash.png           # Splash screen image
+│   └── .well-known/
+│       └── farcaster.json   # Farcaster frame manifest
+└── package.json
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔧 Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework**: Next.js 15
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Theme**: next-themes (Dark/Light mode)
+- **API**: Neynar (Farcaster data)
+- **SDK**: @farcaster/frame-sdk
+
+## 🎨 Brand Assets
+
+- **OG Image**: `public/og-image.jpg` - Preview image for embeds
+- **Icon**: `public/icon.jpg` - App icon (no text)
+- **Splash**: `public/splash.png` - Animated splash screen
+
+## 🚀 Deploy to Vercel
+
+1. Push to GitHub
+2. Connect to Vercel
+3. Add environment variable: `NEYNAR_API_KEY`
+4. Deploy!
+
+### Farcaster Mini App Setup
+
+After deploying, update the URLs in:
+- `public/.well-known/farcaster.json`
+- `app/layout.tsx` (fc:frame metadata)
+
+## 📄 License
+
+MIT

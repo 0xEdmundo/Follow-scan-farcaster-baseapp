@@ -1,0 +1,18 @@
+{
+    "accountAssociation": {
+        "header": "eyJmaWQiOjAsInR5cGUiOiJjdXN0b2R5In0",
+        "payload": "eyJkb21haW4iOiJmb2xsb3dzY2FuLnZlcmNlbC5hcHAifQ",
+        "signature": "MHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw"
+    },
+    "frame": {
+        "version": "1",
+        "name": "Follow Scan",
+        "iconUrl": "https://followscan.vercel.app/icon.jpg",
+        "homeUrl": "https://followscan.vercel.app",
+        "imageUrl": "https://followscan.vercel.app/og-image.jpg",
+        "buttonTitle": "Check Unfollowers",
+        "splashImageUrl": "https://followscan.vercel.app/splash.png",
+        "splashBackgroundColor": "#7C3AED",
+        "webhookUrl": "https://followscan.vercel.app/api/webhook"
+    }
+}
