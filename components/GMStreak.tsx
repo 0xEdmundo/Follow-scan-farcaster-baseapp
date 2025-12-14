@@ -79,6 +79,64 @@ export function GMStreak() {
         hash: txHash,
     });
 
+    // Helper to check same day UTC
+    const isSameUTCDay = (timestamp: number) => {
+        const date = new Date(timestamp * 1000);
+        const now = new Date();
+        return date.getUTCFullYear() === now.getUTCFullYear() &&
+            date.getUTCMonth() === now.getUTCMonth() &&
+            date.getUTCDate() === now.getUTCDate();
+    };
+
+    // Calculate time remaining for next UTC day
+    const calculateTimeRemaining = () => {
+        const now = new Date();
+        const tomorrow = new Date();
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        tomorrow.setUTCHours(0, 0, 0, 0);
+
+        const diff = tomorrow.getTime() - now.getTime();
+        if (diff > 0) {
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hours}h ${minutes}m`;
+        }
+        return '';
+    };
+
+    const checkLocalStatus = () => {
+        if (!address) return false;
+
+        const cacheKey = `gm_streak_last_gm_${address}`;
+        const cachedLastGM = localStorage.getItem(cacheKey);
+
+        if (cachedLastGM) {
+            const lastGM = Number(cachedLastGM);
+            if (isSameUTCDay(lastGM)) {
+                setCanGM(false);
+                setTimeRemaining(calculateTimeRemaining());
+                setIsChecking(false); // Stop loading immediately
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Initial load check with LocalStorage
+    useEffect(() => {
+        if (address) {
+            const foundInCache = checkLocalStatus();
+            if (!foundInCache) {
+                // If not in cache or can GM, we still might want to show loading until contract confirms
+                // But if we want to be faster, we can default to TRUE if not found in cache for today?
+                // Risk: User GM'd on another device.
+                // Safer: Keep loading but timeout??
+                // User asked for SPEED.
+                // Let's rely on contract for 'true' case, but cache for 'false' case (already GM'd).
+            }
+        }
+    }, [address]);
+
     useEffect(() => {
         if (streakData) {
             setStreak(Number(streakData));
@@ -87,70 +145,66 @@ export function GMStreak() {
 
     useEffect(() => {
         const updateStatus = () => {
-            if (isLastGMLoading) {
-                setIsChecking(true);
-                return;
-            }
-
-            if (lastGMData !== undefined) { // Check for undefined explicitly
+            // Priority 1: Blockchain Data (Source of Truth)
+            if (lastGMData !== undefined) {
                 const lastGM = Number(lastGMData);
+
+                // Update Cache
+                if (address && lastGM > 0) {
+                    localStorage.setItem(`gm_streak_last_gm_${address}`, lastGM.toString());
+                }
+
                 if (lastGM === 0) {
                     setCanGM(true);
                     setTimeRemaining('');
                 } else {
-                    const lastGMDate = new Date(lastGM * 1000);
-                    const now = new Date(); // Browser time (local)
-                    // We need to check UTC days strictly as per request
+                    const sameDay = isSameUTCDay(lastGM);
+                    setCanGM(!sameDay);
 
-                    const isSameDay =
-                        lastGMDate.getUTCFullYear() === now.getUTCFullYear() &&
-                        lastGMDate.getUTCMonth() === now.getUTCMonth() &&
-                        lastGMDate.getUTCDate() === now.getUTCDate();
-
-                    setCanGM(!isSameDay);
-
-                    if (isSameDay) {
-                        const tomorrow = new Date();
-                        // Set tomorrow to next UTC midnight
-                        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-                        tomorrow.setUTCHours(0, 0, 0, 0);
-
-                        const diff = tomorrow.getTime() - now.getTime();
-                        if (diff > 0) {
-                            const hours = Math.floor(diff / (1000 * 60 * 60));
-                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            // Only update time remaining if > 0
-                            setTimeRemaining(`${hours}h ${minutes}m`);
-                        } else {
-                            // If countdown is zero/negative but page hasn't refreshed, technically we should be able to GM.
-                            // But usually we need to refetch to confirm.
-                            refetchLastGM();
-                        }
+                    if (sameDay) {
+                        setTimeRemaining(calculateTimeRemaining());
                     } else {
                         setTimeRemaining('');
                     }
                 }
                 setIsChecking(false);
-            } else if (!isLastGMLoading && address) {
-                // If loaded but data is undefined/error, assume safe default or keep loading
-                // setIsChecking(false); 
+            }
+            // Priority 2: Loading State
+            else if (isLastGMLoading) {
+                // If we successfully loaded from cache earlier, don't show loading again
+                // We check if we already have a countdown. If yes, keep showing it.
+                if (!timeRemaining) {
+                    setIsChecking(true);
+                }
             }
         };
 
         updateStatus();
-        const interval = setInterval(updateStatus, 60000);
+        const interval = setInterval(() => {
+            if (!canGM) { // Only update countdown if we are waiting
+                setTimeRemaining(calculateTimeRemaining());
+            }
+        }, 60000);
+
         return () => clearInterval(interval);
-    }, [lastGMData, refetchLastGM, isLastGMLoading, address]);
+    }, [lastGMData, refetchLastGM, isLastGMLoading, address, canGM, timeRemaining]);
 
     useEffect(() => {
         if (isSuccess) {
             setShowSuccess(true);
             setCanGM(false);
+            // Optimistic update
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            if (address) {
+                localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
+            }
+            setTimeRemaining(calculateTimeRemaining());
+
             refetchStreak();
             refetchLastGM();
             setTimeout(() => setShowSuccess(false), 3000);
         }
-    }, [isSuccess, refetchStreak, refetchLastGM]);
+    }, [isSuccess, refetchStreak, refetchLastGM, address]);
 
     const handleGM = async () => {
         if (!canGM || !isConnected) return;
