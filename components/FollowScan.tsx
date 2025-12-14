@@ -435,6 +435,23 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                                 <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
                                     Not Following You Back
                                 </p>
+                                <Button
+                                    onClick={() => {
+                                        const text = `${notFollowingBack.length} tane takibime geri dönmeyen arkadaş varmış, bunları tespit ettim sende kontrol et 👇`;
+                                        const embedUrl = 'https://followscan.vercel.app';
+                                        const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(embedUrl)}`;
+
+                                        if (openUrl) {
+                                            openUrl(url);
+                                        } else {
+                                            window.open(url, '_blank');
+                                        }
+                                    }}
+                                    className="mt-3 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full shadow-md transform transition hover:scale-105"
+                                    size="sm"
+                                >
+                                    📤 Share Results
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
