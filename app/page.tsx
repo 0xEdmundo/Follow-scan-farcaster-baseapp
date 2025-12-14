@@ -2,15 +2,53 @@
 
 import { FollowScan } from '@/components/FollowScan';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import sdk from '@farcaster/frame-sdk';
 
 function FollowScanContent() {
   const searchParams = useSearchParams();
   const fidParam = searchParams.get('fid');
+  const [contextFid, setContextFid] = useState<number | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
-  const fid = fidParam ? parseInt(fidParam, 10) : null;
+  // Call sdk.actions.ready() immediately on mount
+  useEffect(() => {
+    const initFrame = async () => {
+      try {
+        // Call ready first to dismiss splash screen
+        await sdk.actions.ready();
+
+        // Get FID from Farcaster context
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+          setContextFid(context.user.fid);
+        }
+      } catch (error) {
+        console.log('Not in Farcaster frame context');
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    initFrame();
+  }, []);
+
+  // Use context FID if available, otherwise use URL param
+  const fid = contextFid || (fidParam ? parseInt(fidParam, 10) : null);
+
+  // Show loading while waiting for frame context
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <img src="/splash.png" alt="Loading" className="w-20 h-20 mx-auto animate-pulse mb-4" />
+          <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
 
   if (!fid || isNaN(fid)) {
     return (
