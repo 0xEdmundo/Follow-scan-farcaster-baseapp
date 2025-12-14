@@ -169,12 +169,21 @@ export function GMStreak() {
                 }
                 setIsChecking(false);
             }
-            // Priority 2: Loading State
-            else if (isLastGMLoading) {
-                // If we successfully loaded from cache earlier, don't show loading again
-                // We check if we already have a countdown. If yes, keep showing it.
-                if (!timeRemaining) {
-                    setIsChecking(true);
+            // Priority 2: Loading finished but no data (Error or empty)
+            else if (!isLastGMLoading) {
+                // Assume can GM if we can't read data? Or just stop loading.
+                // If we had a cache hit, we might be fine.
+                // If we have nothing, let's open the gate but maybe warn?
+                // For now, just stop loading so user isn't stuck.
+                // Only set canGM to true if we really don't know? default is false.
+                // If data is undefined, it might mean user never GM'd => 0?
+                // Usually wagmi returns 0 for uint256 if strict? or undefined if loading?
+
+                // If we are definitely NOT loading, and data is undefined, it's a "done" state.
+                setIsChecking(false);
+                if (canGM === false && !timeRemaining) {
+                    // If we are stuck in false state with no timer, enable it (fallback)
+                    setCanGM(true);
                 }
             }
         };
@@ -188,6 +197,20 @@ export function GMStreak() {
 
         return () => clearInterval(interval);
     }, [lastGMData, refetchLastGM, isLastGMLoading, address, canGM, timeRemaining]);
+
+    // Safety timeout to prevent infinite loading
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (isChecking) {
+                setIsChecking(false);
+                // If we timed out and still can't GM, maybe force enable or check cache?
+                if (!canGM && !timeRemaining) {
+                    setCanGM(true);
+                }
+            }
+        }, 5000); // 5 seconds max load time
+        return () => clearTimeout(timer);
+    }, [isChecking, canGM, timeRemaining]);
 
     useEffect(() => {
         if (isSuccess) {
