@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt, useConnect } from 'wagmi';
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useConnect, useSendTransaction } from 'wagmi';
 import { CONTRACTS, GM_STREAK_ABI } from '@/lib/web3-config';
 import { Button } from '@/components/ui/button';
+import { Attribution } from 'ox/erc8021';
+import { encodeFunctionData } from 'viem';
 
 export function GMStreak() {
     const { address, isConnected, isConnecting } = useAccount();
@@ -67,8 +69,9 @@ export function GMStreak() {
         },
     });
 
-    // Write sayGM transaction (sponsored by Coinbase Paymaster)
-    const { writeContract, data: txHash, isPending } = useWriteContract();
+    // Write sayGM transaction (sponsored by Coinbase Paymaster) with Builder Code
+    const { sendTransaction, data: txHash, isPending } = useSendTransaction();
+    const builderCode = "bc_xvyf9fz7";
 
     // Wait for transaction
     const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
@@ -138,10 +141,27 @@ export function GMStreak() {
         if (!canGM || !isConnected) return;
 
         try {
-            writeContract({
-                address: CONTRACTS.GM_STREAK_ADDRESS,
+            // Encode function data
+            const encodedData = encodeFunctionData({
                 abi: GM_STREAK_ABI,
-                functionName: 'sayGM',
+                functionName: 'sayGM'
+            });
+
+            // Generate attribution suffix
+            const dataSuffix = Attribution.toDataSuffix({
+                codes: [builderCode]
+            });
+
+            // Append suffix (strip 0x from suffix if present, but ox/erc8021 usually returns plain bytes or 0x prefixed. 
+            // The docs say: encoded + dataSuffix.slice(2). verify dataSuffix starts with 0x.
+            // Ox attribution returns 0x prefixed hex string.
+            const dataWithSuffix = (encodedData + dataSuffix.slice(2)) as `0x${string}`;
+
+            console.log('Sending transaction with builder code:', builderCode);
+
+            sendTransaction({
+                to: CONTRACTS.GM_STREAK_ADDRESS,
+                data: dataWithSuffix
             });
         } catch (error) {
             console.error('GM failed:', error);
