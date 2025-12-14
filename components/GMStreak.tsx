@@ -12,6 +12,7 @@ export function GMStreak() {
     const [streak, setStreak] = useState(0);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isInFrame, setIsInFrame] = useState(false);
+    const [timeRemaining, setTimeRemaining] = useState<string>('');
 
     // Auto-connect wallet in Farcaster/Base context
     useEffect(() => {
@@ -81,13 +82,47 @@ export function GMStreak() {
     }, [streakData]);
 
     useEffect(() => {
-        if (lastGMData) {
-            const lastGM = Number(lastGMData);
-            const now = Math.floor(Date.now() / 1000);
-            const dayInSeconds = 86400;
-            setCanGM(now - lastGM >= dayInSeconds || lastGM === 0);
-        }
-    }, [lastGMData]);
+        const updateStatus = () => {
+            if (lastGMData) {
+                const lastGM = Number(lastGMData);
+                if (lastGM === 0) {
+                    setCanGM(true);
+                    setTimeRemaining('');
+                } else {
+                    const lastGMDate = new Date(lastGM * 1000);
+                    const now = new Date();
+
+                    const isSameDay =
+                        lastGMDate.getUTCFullYear() === now.getUTCFullYear() &&
+                        lastGMDate.getUTCMonth() === now.getUTCMonth() &&
+                        lastGMDate.getUTCDate() === now.getUTCDate();
+
+                    setCanGM(!isSameDay);
+
+                    if (isSameDay) {
+                        const tomorrow = new Date();
+                        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+                        tomorrow.setUTCHours(0, 0, 0, 0);
+
+                        const diff = tomorrow.getTime() - now.getTime();
+                        if (diff > 0) {
+                            const hours = Math.floor(diff / (1000 * 60 * 60));
+                            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            setTimeRemaining(`${hours}h ${minutes}m`);
+                        } else {
+                            refetchLastGM();
+                        }
+                    } else {
+                        setTimeRemaining('');
+                    }
+                }
+            }
+        };
+
+        updateStatus();
+        const interval = setInterval(updateStatus, 60000);
+        return () => clearInterval(interval);
+    }, [lastGMData, refetchLastGM]);
 
     useEffect(() => {
         if (isSuccess) {
@@ -167,9 +202,9 @@ export function GMStreak() {
                         onClick={handleGM}
                         disabled={!canGM || isPending || isConfirming}
                         className={`${canGM
-                                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
-                                : 'bg-gray-300 dark:bg-gray-700'
-                            } text-white font-bold px-6`}
+                            ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
+                            : 'bg-gray-300 dark:bg-gray-700'
+                            } text-white font-bold px-6 min-w-[150px]`}
                     >
                         {isPending || isConfirming ? (
                             <span className="flex items-center gap-2">
@@ -179,7 +214,7 @@ export function GMStreak() {
                         ) : canGM ? (
                             'Say GM ☀️'
                         ) : (
-                            'GM Sent ✓'
+                            timeRemaining ? `Next: ${timeRemaining}` : 'GM Sent ✓'
                         )}
                     </Button>
                 </div>
