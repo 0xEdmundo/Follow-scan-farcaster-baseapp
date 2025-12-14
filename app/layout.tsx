@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     "fc:frame": "vNext",
     "fc:frame:image": "https://followscan.vercel.app/og-image.jpg",
     "fc:frame:image:aspect_ratio": "1.91:1",
-    "fc:frame:button:1": "Check Unfollowers",
+    "fc:frame:button:1": "Scan Follow Backs",
     "fc:frame:button:1:action": "launch_frame",
     "fc:frame:button:1:target": "https://followscan.vercel.app",
     "base:app_id": "693ed644d19763ca26ddc2d3"

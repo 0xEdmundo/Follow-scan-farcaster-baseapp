@@ -5,7 +5,7 @@
         "iconUrl": "https://followscan.vercel.app/icon.jpg",
         "homeUrl": "https://followscan.vercel.app",
         "imageUrl": "https://followscan.vercel.app/og-image.jpg",
-        "buttonTitle": "Check Unfollowers",
+        "buttonTitle": "Scan Follow Backs",
         "splashImageUrl": "https://followscan.vercel.app/splash.png",
         "splashBackgroundColor": "#7C3AED",
         "webhookUrl": "https://followscan.vercel.app/api/webhook",
