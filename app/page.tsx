@@ -10,6 +10,8 @@ function FollowScanContent() {
   const searchParams = useSearchParams();
   const fidParam = searchParams.get('fid');
   const [contextFid, setContextFid] = useState<number | null>(null);
+  const [isFrameAdded, setIsFrameAdded] = useState(false);
+  const [onAddFrame, setOnAddFrame] = useState<(() => void) | undefined>(undefined);
   const [isReady, setIsReady] = useState(false);
 
   // Call sdk.actions.ready() immediately on mount
@@ -27,6 +29,17 @@ function FollowScanContent() {
         if (context?.user?.fid) {
           setContextFid(context.user.fid);
         }
+
+        // Check if frame is added
+        if (context?.client?.added) {
+          setIsFrameAdded(true);
+        }
+
+        // Set add frame handler
+        const handleAdd = () => {
+          sdk.actions.addFrame();
+        };
+        setOnAddFrame(() => handleAdd);
       } catch (error) {
         console.log('Not in Farcaster frame context');
       } finally {
@@ -130,7 +143,7 @@ function FollowScanContent() {
     );
   }
 
-  return <FollowScan initialFid={fid} />;
+  return <FollowScan initialFid={fid} isFrameAdded={isFrameAdded} onAddFrame={onAddFrame} />;
 }
 
 function LoadingSpinner() {
