@@ -255,8 +255,23 @@ export function GMStreak() {
                 to: CONTRACTS.GM_STREAK_ADDRESS,
                 data: dataWithSuffix
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('GM failed:', error);
+            // Check for specific revert string to update UI
+            if (error?.message?.includes('Daha yeni GM dedin') ||
+                JSON.stringify(error).includes('Daha yeni GM dedin')) {
+
+                // Update local state immediately
+                setCanGM(false);
+                if (address) {
+                    const nowSeconds = Math.floor(Date.now() / 1000);
+                    localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
+                }
+                setTimeRemaining(calculateTimeRemaining());
+
+                // Refresh data
+                refetchLastGM();
+            }
         }
     };
 
