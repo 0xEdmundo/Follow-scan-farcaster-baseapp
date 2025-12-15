@@ -14,8 +14,8 @@ export function GMStreak() {
     const [streak, setStreak] = useState(0);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isInFrame, setIsInFrame] = useState(false);
-    const [timeRemaining, setTimeRemaining] = useState<string>('');
     const [isChecking, setIsChecking] = useState(true);
+    const [isSending, setIsSending] = useState(false);
 
     // Auto-connect wallet in Farcaster/Base context
     useEffect(() => {
@@ -120,7 +120,6 @@ export function GMStreak() {
             // If cache says we GM'd today, trust it initially for speed
             if (isSameUTCDay(lastGM)) {
                 setCanGM(false);
-                setTimeRemaining(calculateTimeRemaining());
                 setIsChecking(false);
                 return true;
             } else {
@@ -165,31 +164,22 @@ export function GMStreak() {
 
                 if (lastGM === 0) {
                     setCanGM(true);
-                    setTimeRemaining('');
                 } else {
                     const sameDay = isSameUTCDay(lastGM);
                     setCanGM(!sameDay);
-
-                    if (sameDay) {
-                        setTimeRemaining(calculateTimeRemaining());
-                    } else {
-                        setTimeRemaining('');
-                    }
                 }
                 setIsChecking(false);
             }
             // Priority 2: Loading finished but no data (Error or empty)
             else if (!isLastGMLoading) {
-                // If streak is 0, it strongly implies no active streak today.
-                // We should lean towards unlocking if we aren't 100% sure we are locked.
-                if (canGM === false && !timeRemaining && streak === 0) {
+                // If streak is 0, always unlock - they haven't GM'd yet
+                if (streak === 0) {
+                    setCanGM(true);
+                } else if (canGM === false) {
+                    // Fallback: if we're stuck locked with no data, unlock
                     setCanGM(true);
                 }
-
                 setIsChecking(false);
-                if (canGM === false && !timeRemaining) {
-                    setCanGM(true);
-                }
             }
         };
 
@@ -198,48 +188,49 @@ export function GMStreak() {
             // Check if we crossed midnight
             if (lastGMData) {
                 const lastGM = Number(lastGMData);
-                // If streak is 0, we might want to be more aggressive? 
-                // Actually standard logic holds: if not same UTC day, unlock.
                 if (!isSameUTCDay(lastGM) && !canGM) {
                     setCanGM(true);
-                    setTimeRemaining('');
                     return;
                 }
             } else if (streak === 0 && !canGM && !isLastGMLoading) {
-                // If we have no lastGM data but streak is 0 and we are not loading... unlock?
+                // If streak is 0 and no lastGM data, always unlock
                 setCanGM(true);
             }
-
-            if (!canGM) { // Only update countdown if we are waiting
-                const remaining = calculateTimeRemaining();
-                if (!remaining) {
-                    // If no time remaining, it means we passed the target
-                    // But we should double check next tick or let the above check handle it
-                    // Just updating string here
-                }
-                setTimeRemaining(remaining);
-            }
-        }, 1000); // Check every second for precision
+        }, 5000); // Check every 5s (less aggressive)
 
         return () => clearInterval(interval);
-    }, [lastGMData, refetchLastGM, isLastGMLoading, address, canGM, timeRemaining]);
+    }, [lastGMData, refetchLastGM, isLastGMLoading, address, canGM, streak]);
 
     // Safety timeout to prevent infinite loading
     useEffect(() => {
         const timer = setTimeout(() => {
             if (isChecking) {
                 setIsChecking(false);
-                // If we timed out and still can't GM, maybe force enable or check cache?
-                if (!canGM && !timeRemaining) {
+                // If we timed out and still can't GM, force enable
+                if (!canGM) {
                     setCanGM(true);
                 }
             }
         }, 5000); // 5 seconds max load time
         return () => clearTimeout(timer);
-    }, [isChecking, canGM, timeRemaining]);
+    }, [isChecking, canGM]);
+
+    // Sending timeout - if stuck in sending state for 15s, reset
+    useEffect(() => {
+        if (isSending) {
+            const timer = setTimeout(() => {
+                setIsSending(false);
+                // Refetch to see if it actually went through
+                refetchStreak();
+                refetchLastGM();
+            }, 15000); // 15 seconds timeout
+            return () => clearTimeout(timer);
+        }
+    }, [isSending, refetchStreak, refetchLastGM]);
 
     useEffect(() => {
         if (isSuccess) {
+            setIsSending(false);
             setShowSuccess(true);
             setCanGM(false);
             // Optimistic update
@@ -247,7 +238,6 @@ export function GMStreak() {
             if (address) {
                 localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
             }
-            setTimeRemaining(calculateTimeRemaining());
 
             refetchStreak();
             refetchLastGM();
@@ -290,13 +280,13 @@ export function GMStreak() {
                     setCanGM(false);
                     const nowSeconds = Math.floor(Date.now() / 1000);
                     localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
-                    setTimeRemaining(calculateTimeRemaining());
                     refetchLastGM();
                     return; // Stop execution, don't open wallet
                 }
             }
 
             console.log('Sending transaction with builder code:', builderCode);
+            setIsSending(true);
 
             sendTransaction({
                 to: CONTRACTS.GM_STREAK_ADDRESS,
@@ -359,7 +349,7 @@ export function GMStreak() {
                     )}
                     <Button
                         onClick={handleGM}
-                        disabled={!canGM || isPending || isConfirming || isChecking}
+                        disabled={!canGM || isPending || isConfirming || isChecking || isSending}
                         className={`${canGM && !isChecking
                             ? 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600'
                             : 'bg-gray-300 dark:bg-gray-700'
@@ -370,7 +360,7 @@ export function GMStreak() {
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Loading...
                             </span>
-                        ) : isPending || isConfirming ? (
+                        ) : (isPending || isConfirming || isSending) ? (
                             <span className="flex items-center gap-2">
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                 Sending...
@@ -378,14 +368,20 @@ export function GMStreak() {
                         ) : canGM ? (
                             'Say GM ☀️'
                         ) : (
-                            timeRemaining ? `Next: ${timeRemaining}` : 'GM Sent ✓'
+                            'GM Sent ✓'
                         )}
                     </Button>
                 </div>
             </div>
+
             {canGM && isConnected && (
                 <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2 text-center">
                     ⛽ Free transaction - gas sponsored!
+                </p>
+            )}
+            {!canGM && !isChecking && !isSending && !isPending && !isConfirming && (
+                <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2 text-center">
+                    ☀️ Come back tomorrow!
                 </p>
             )}
 
