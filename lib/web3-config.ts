@@ -17,7 +17,7 @@ export const CONTRACTS = {
     USDC_ADDRESS: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as `0x${string}`,
 };
 
-// GM Streak Contract ABI (sayGM function)
+// GM Streak Contract ABI (using correct functions from verified contract)
 export const GM_STREAK_ABI = [
     {
         name: 'sayGM',
@@ -27,17 +27,35 @@ export const GM_STREAK_ABI = [
         outputs: [],
     },
     {
-        name: 'getStreak',
+        name: 'getUserStats',
         type: 'function',
         stateMutability: 'view',
-        inputs: [{ name: 'user', type: 'address' }],
+        inputs: [{ name: '_user', type: 'address' }],
+        outputs: [
+            { name: 'lastGM', type: 'uint256' },
+            { name: 'streak', type: 'uint256' },
+            { name: 'total', type: 'uint256' },
+        ],
+    },
+    {
+        name: 'isStreakActive',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [{ name: '_user', type: 'address' }],
+        outputs: [{ name: '', type: 'bool' }],
+    },
+    {
+        name: 'COOLDOWN_TIME',
+        type: 'function',
+        stateMutability: 'view',
+        inputs: [],
         outputs: [{ name: '', type: 'uint256' }],
     },
     {
-        name: 'getLastGM',
+        name: 'RESET_TIME',
         type: 'function',
         stateMutability: 'view',
-        inputs: [{ name: 'user', type: 'address' }],
+        inputs: [],
         outputs: [{ name: '', type: 'uint256' }],
     },
 ] as const;

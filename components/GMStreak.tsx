@@ -48,27 +48,15 @@ export function GMStreak() {
         autoConnect();
     }, [isConnected, isConnecting, connectors, connect]);
 
-    // Read current streak
-    const { data: streakData, refetch: refetchStreak } = useReadContract({
+    // Read user stats from contract (single call returns all data)
+    const { data: userStatsData, refetch: refetchUserStats, isLoading: isStatsLoading } = useReadContract({
         address: CONTRACTS.GM_STREAK_ADDRESS,
         abi: GM_STREAK_ABI,
-        functionName: 'getStreak',
+        functionName: 'getUserStats',
         args: address ? [address] : undefined,
         query: {
             enabled: !!address,
-            refetchInterval: 10000, // Check every 10s
-        },
-    });
-
-    // Read last GM timestamp
-    const { data: lastGMData, refetch: refetchLastGM, isLoading: isLastGMLoading } = useReadContract({
-        address: CONTRACTS.GM_STREAK_ADDRESS,
-        abi: GM_STREAK_ABI,
-        functionName: 'getLastGM',
-        args: address ? [address] : undefined,
-        query: {
-            enabled: !!address,
-            refetchInterval: 10000, // Check every 10s
+            refetchInterval: 5000, // Check every 5s for faster updates
         },
     });
 
@@ -146,60 +134,63 @@ export function GMStreak() {
     }, [address]);
 
     useEffect(() => {
-        if (streakData) {
-            setStreak(Number(streakData));
+        // userStatsData is a tuple: [lastGM, streak, total]
+        if (userStatsData) {
+            const [, streakValue] = userStatsData as [bigint, bigint, bigint];
+            setStreak(Number(streakValue));
         }
-    }, [streakData]);
+    }, [userStatsData]);
 
     useEffect(() => {
         const updateStatus = () => {
             // Priority 1: Blockchain Data (Source of Truth)
-            if (lastGMData !== undefined) {
-                const lastGM = Number(lastGMData);
+            if (userStatsData !== undefined) {
+                const [lastGMValue, streakValue] = userStatsData as [bigint, bigint, bigint];
+                const lastGM = Number(lastGMValue);
+                const currentStreak = Number(streakValue);
+
+                // Update local state
+                setStreak(currentStreak);
 
                 // Update Cache
                 if (address && lastGM > 0) {
                     localStorage.setItem(`gm_streak_last_gm_${address}`, lastGM.toString());
                 }
 
-                if (lastGM === 0) {
-                    setCanGM(true);
-                } else {
-                    const sameDay = isSameUTCDay(lastGM);
-                    setCanGM(!sameDay);
-                }
+                // Determine if user can GM (20 hour cooldown from contract)
+                const COOLDOWN_SECONDS = 20 * 60 * 60; // 20 hours
+                const nowSeconds = Math.floor(Date.now() / 1000);
+                const canGMNow = (nowSeconds - lastGM) >= COOLDOWN_SECONDS || lastGM === 0;
+
+                setCanGM(canGMNow);
                 setIsChecking(false);
             }
-            // Priority 2: Loading finished but no data (Error or empty)
-            else if (!isLastGMLoading) {
-                // If streak is 0, always unlock - they haven't GM'd yet
-                if (streak === 0) {
-                    setCanGM(true);
-                } else if (canGM === false) {
-                    // Fallback: if we're stuck locked with no data, unlock
-                    setCanGM(true);
-                }
+            // Priority 2: Loading finished but no data
+            else if (!isStatsLoading) {
+                // If no data, user hasn't GM'd yet - allow them to GM
+                setCanGM(true);
                 setIsChecking(false);
             }
         };
 
         updateStatus();
         const interval = setInterval(() => {
-            // Check if we crossed midnight
-            if (lastGMData) {
-                const lastGM = Number(lastGMData);
-                if (!isSameUTCDay(lastGM) && !canGM) {
+            // Re-check if cooldown passed
+            if (userStatsData) {
+                const [lastGMValue] = userStatsData as [bigint, bigint, bigint];
+                const lastGM = Number(lastGMValue);
+                const COOLDOWN_SECONDS = 20 * 60 * 60; // 20 hours
+                const nowSeconds = Math.floor(Date.now() / 1000);
+                const canGMNow = (nowSeconds - lastGM) >= COOLDOWN_SECONDS || lastGM === 0;
+
+                if (canGMNow && !canGM) {
                     setCanGM(true);
-                    return;
                 }
-            } else if (streak === 0 && !canGM && !isLastGMLoading) {
-                // If streak is 0 and no lastGM data, always unlock
-                setCanGM(true);
             }
-        }, 5000); // Check every 5s (less aggressive)
+        }, 5000); // Check every 5s
 
         return () => clearInterval(interval);
-    }, [lastGMData, refetchLastGM, isLastGMLoading, address, canGM, streak]);
+    }, [userStatsData, isStatsLoading, address, canGM]);
 
     // Safety timeout to prevent infinite loading
     useEffect(() => {
@@ -221,12 +212,11 @@ export function GMStreak() {
             const timer = setTimeout(() => {
                 setIsSending(false);
                 // Refetch to see if it actually went through
-                refetchStreak();
-                refetchLastGM();
+                refetchUserStats();
             }, 15000); // 15 seconds timeout
             return () => clearTimeout(timer);
         }
-    }, [isSending, refetchStreak, refetchLastGM]);
+    }, [isSending, refetchUserStats]);
 
     useEffect(() => {
         if (isSuccess) {
@@ -239,11 +229,10 @@ export function GMStreak() {
                 localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
             }
 
-            refetchStreak();
-            refetchLastGM();
+            refetchUserStats();
             setTimeout(() => setShowSuccess(false), 3000);
         }
-    }, [isSuccess, refetchStreak, refetchLastGM, address]);
+    }, [isSuccess, refetchUserStats, address]);
 
     const handleGM = async () => {
         if (!canGM || !isConnected || !publicClient || !address) return;
@@ -280,7 +269,7 @@ export function GMStreak() {
                     setCanGM(false);
                     const nowSeconds = Math.floor(Date.now() / 1000);
                     localStorage.setItem(`gm_streak_last_gm_${address}`, nowSeconds.toString());
-                    refetchLastGM();
+                    refetchUserStats();
                     return; // Stop execution, don't open wallet
                 }
             }
