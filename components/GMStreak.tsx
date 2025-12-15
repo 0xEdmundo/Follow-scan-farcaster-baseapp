@@ -81,6 +81,7 @@ export function GMStreak() {
     });
 
     // Helper to check same day UTC
+    // 00:00 UTC reset
     const isSameUTCDay = (timestamp: number) => {
         const date = new Date(timestamp * 1000);
         const now = new Date();
@@ -89,14 +90,15 @@ export function GMStreak() {
             date.getUTCDate() === now.getUTCDate();
     };
 
-    // Calculate time remaining for next UTC day
+    // Calculate time remaining for next 00:00 UTC
     const calculateTimeRemaining = () => {
         const now = new Date();
-        const tomorrow = new Date();
-        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-        tomorrow.setUTCHours(0, 0, 0, 0);
+        const target = new Date(now);
+        // Target is next 00:00 UTC (tomorrow)
+        target.setUTCDate(target.getUTCDate() + 1);
+        target.setUTCHours(0, 0, 0, 0);
 
-        const diff = tomorrow.getTime() - now.getTime();
+        const diff = target.getTime() - now.getTime();
         if (diff > 0) {
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -191,10 +193,26 @@ export function GMStreak() {
 
         updateStatus();
         const interval = setInterval(() => {
-            if (!canGM) { // Only update countdown if we are waiting
-                setTimeRemaining(calculateTimeRemaining());
+            // Check if we crossed midnight
+            if (lastGMData) {
+                const lastGM = Number(lastGMData);
+                if (!isSameUTCDay(lastGM) && !canGM) {
+                    setCanGM(true);
+                    setTimeRemaining('');
+                    return;
+                }
             }
-        }, 60000);
+
+            if (!canGM) { // Only update countdown if we are waiting
+                const remaining = calculateTimeRemaining();
+                if (!remaining) {
+                    // If no time remaining, it means we passed the target
+                    // But we should double check next tick or let the above check handle it
+                    // Just updating string here
+                }
+                setTimeRemaining(remaining);
+            }
+        }, 1000); // Check every second for precision
 
         return () => clearInterval(interval);
     }, [lastGMData, refetchLastGM, isLastGMLoading, address, canGM, timeRemaining]);
