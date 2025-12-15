@@ -56,6 +56,7 @@ export function GMStreak() {
         args: address ? [address] : undefined,
         query: {
             enabled: !!address,
+            refetchInterval: 10000, // Check every 10s
         },
     });
 
@@ -67,6 +68,7 @@ export function GMStreak() {
         args: address ? [address] : undefined,
         query: {
             enabled: !!address,
+            refetchInterval: 10000, // Check every 10s
         },
     });
 
@@ -339,12 +341,19 @@ export function GMStreak() {
                     <div>
                         <p className="font-bold text-yellow-800 dark:text-yellow-300">GM Streak</p>
                         <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                            {streak > 0 ? `🔥 ${streak} day${streak > 1 ? 's' : ''} streak!` : 'Start your streak!'}
+                            Daily Check-in
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <div className="bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-lg flex flex-col items-center justify-center border border-yellow-200 dark:border-yellow-800 mr-1">
+                        <span className="text-[10px] font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">STREAK</span>
+                        <div className="flex items-center gap-1">
+                            <span className="text-sm">🔥</span>
+                            <span className="text-xl font-black text-yellow-800 dark:text-yellow-300 leading-none">{streak || 0}</span>
+                        </div>
+                    </div>
                     {showSuccess && (
                         <span className="text-green-600 dark:text-green-400 text-sm font-medium animate-pulse">
                             ✓ GM sent!
