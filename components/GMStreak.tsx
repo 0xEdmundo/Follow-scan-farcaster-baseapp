@@ -117,11 +117,15 @@ export function GMStreak() {
 
         if (cachedLastGM) {
             const lastGM = Number(cachedLastGM);
+            // If cache says we GM'd today, trust it initially for speed
             if (isSameUTCDay(lastGM)) {
                 setCanGM(false);
                 setTimeRemaining(calculateTimeRemaining());
-                setIsChecking(false); // Stop loading immediately
+                setIsChecking(false);
                 return true;
+            } else {
+                // Cache is old, clear it
+                localStorage.removeItem(cacheKey);
             }
         }
         return false;
@@ -339,21 +343,20 @@ export function GMStreak() {
                 <div className="flex items-center gap-3">
                     <span className="text-3xl">☀️</span>
                     <div>
-                        <p className="font-bold text-yellow-800 dark:text-yellow-300">GM Streak</p>
-                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                        <p className="font-bold text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                            GM Streak
+                            <span className="bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-lg border border-yellow-200 dark:border-yellow-800 flex items-center gap-1">
+                                <span className="text-sm">🔥</span>
+                                <span className="text-sm font-black text-yellow-800 dark:text-yellow-300 leading-none">{streak}</span>
+                            </span>
+                        </p>
+                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
                             Daily Check-in
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <div className="bg-white/50 dark:bg-black/20 px-3 py-1.5 rounded-lg flex flex-col items-center justify-center border border-yellow-200 dark:border-yellow-800 mr-1">
-                        <span className="text-[10px] font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">STREAK</span>
-                        <div className="flex items-center gap-1">
-                            <span className="text-sm">🔥</span>
-                            <span className="text-xl font-black text-yellow-800 dark:text-yellow-300 leading-none">{streak || 0}</span>
-                        </div>
-                    </div>
                     {showSuccess && (
                         <span className="text-green-600 dark:text-green-400 text-sm font-medium animate-pulse">
                             ✓ GM sent!
