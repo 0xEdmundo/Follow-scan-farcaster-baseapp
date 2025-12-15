@@ -180,18 +180,14 @@ export function GMStreak() {
             }
             // Priority 2: Loading finished but no data (Error or empty)
             else if (!isLastGMLoading) {
-                // Assume can GM if we can't read data? Or just stop loading.
-                // If we had a cache hit, we might be fine.
-                // If we have nothing, let's open the gate but maybe warn?
-                // For now, just stop loading so user isn't stuck.
-                // Only set canGM to true if we really don't know? default is false.
-                // If data is undefined, it might mean user never GM'd => 0?
-                // Usually wagmi returns 0 for uint256 if strict? or undefined if loading?
+                // If streak is 0, it strongly implies no active streak today.
+                // We should lean towards unlocking if we aren't 100% sure we are locked.
+                if (canGM === false && !timeRemaining && streak === 0) {
+                    setCanGM(true);
+                }
 
-                // If we are definitely NOT loading, and data is undefined, it's a "done" state.
                 setIsChecking(false);
                 if (canGM === false && !timeRemaining) {
-                    // If we are stuck in false state with no timer, enable it (fallback)
                     setCanGM(true);
                 }
             }
@@ -202,11 +198,16 @@ export function GMStreak() {
             // Check if we crossed midnight
             if (lastGMData) {
                 const lastGM = Number(lastGMData);
+                // If streak is 0, we might want to be more aggressive? 
+                // Actually standard logic holds: if not same UTC day, unlock.
                 if (!isSameUTCDay(lastGM) && !canGM) {
                     setCanGM(true);
                     setTimeRemaining('');
                     return;
                 }
+            } else if (streak === 0 && !canGM && !isLastGMLoading) {
+                // If we have no lastGM data but streak is 0 and we are not loading... unlock?
+                setCanGM(true);
             }
 
             if (!canGM) { // Only update countdown if we are waiting
@@ -343,14 +344,8 @@ export function GMStreak() {
                 <div className="flex items-center gap-3">
                     <span className="text-3xl">☀️</span>
                     <div>
-                        <p className="font-bold text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
-                            GM Streak
-                            <span className="bg-white/50 dark:bg-black/20 px-2 py-0.5 rounded-lg border border-yellow-200 dark:border-yellow-800 flex items-center gap-1">
-                                <span className="text-sm">🔥</span>
-                                <span className="text-sm font-black text-yellow-800 dark:text-yellow-300 leading-none">{streak}</span>
-                            </span>
-                        </p>
-                        <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                        <p className="font-bold text-yellow-800 dark:text-yellow-300">GM Streak</p>
+                        <p className="text-sm text-yellow-600 dark:text-yellow-400">
                             Daily Check-in
                         </p>
                     </div>
@@ -393,6 +388,17 @@ export function GMStreak() {
                     ⛽ Free transaction - gas sponsored!
                 </p>
             )}
+
+            {/* Streak Badge Row - Below everything */}
+            <div className="flex justify-center mt-3 border-t border-yellow-200 dark:border-yellow-800 pt-2">
+                <div className="bg-white/50 dark:bg-black/20 px-4 py-1.5 rounded-full flex items-center gap-2 border border-yellow-200 dark:border-yellow-800">
+                    <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider">CURRENT STREAK</span>
+                    <div className="flex items-center gap-1">
+                        <span className="text-sm">🔥</span>
+                        <span className="text-xl font-black text-yellow-800 dark:text-yellow-300 leading-none">{streak}</span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
