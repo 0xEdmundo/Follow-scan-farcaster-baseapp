@@ -11,7 +11,7 @@ import { PremiumUnlockModal } from '@/components/PremiumUnlockModal';
 import { useAccount, useConnect } from 'wagmi';
 import {
     isPremiumActive,
-    hasTodayCache,
+    hasValidCache,
     getCachedData,
     saveCacheData,
     getTimeUntilNextScan,
@@ -126,9 +126,10 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
         setIsFromCache(false);
         console.log('[FollowScan] 🚀 Starting follow data scan...');
 
-        // Check for today's cache first
-        if (hasTodayCache(initialFid)) {
-            console.log('[FollowScan] 📦 Using cached data from today');
+        // Check for valid cache first (premium: daily, free: weekly)
+        const userIsPremium = isPremiumActive(address || '');
+        if (hasValidCache(initialFid, userIsPremium)) {
+            console.log('[FollowScan] 📦 Using cached data');
             const cached = getCachedData(initialFid);
             if (cached) {
                 setFollowers(cached.followers);
@@ -491,7 +492,7 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                                 {isFromCache && (
                                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 text-center">
                                         <p className="text-sm text-blue-700 dark:text-blue-300">
-                                            📅 Cached data from {getLastUpdateTime(initialFid)} • Next refresh in {getTimeUntilNextScan(initialFid)}
+                                            📅 Cached data from {getLastUpdateTime(initialFid)} • Next refresh in {getTimeUntilNextScan(initialFid, isPremiumActive(address || ''))}
                                         </p>
                                     </div>
                                 )}

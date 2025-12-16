@@ -69,12 +69,24 @@ export interface CachedScanData {
 }
 
 /**
- * Check if today's cache exists for this FID
+ * Check if valid cache exists for this FID
+ * Premium: daily refresh, Non-premium: weekly refresh
  */
-export function hasTodayCache(fid: number): boolean {
+export function hasValidCache(fid: number, isPremium: boolean): boolean {
     const cached = getCachedData(fid);
     if (!cached) return false;
 
+    if (isPremium) {
+        return isSameUTCDay(cached.timestamp);
+    } else {
+        return isSameUTCWeek(cached.timestamp);
+    }
+}
+
+// Legacy function for backwards compatibility
+export function hasTodayCache(fid: number): boolean {
+    const cached = getCachedData(fid);
+    if (!cached) return false;
     return isSameUTCDay(cached.timestamp);
 }
 
@@ -104,20 +116,36 @@ export function saveCacheData(data: CachedScanData): void {
 
 /**
  * Get time remaining until next scan is allowed
+ * Premium: until next day, Non-premium: until next week
  */
-export function getTimeUntilNextScan(fid: number): string {
+export function getTimeUntilNextScan(fid: number, isPremium: boolean): string {
     const cached = getCachedData(fid);
     if (!cached) return '';
 
     const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-    tomorrow.setUTCHours(0, 0, 0, 0);
+    let target: Date;
 
-    const diff = tomorrow.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (isPremium) {
+        // Next day at 00:00 UTC
+        target = new Date(now);
+        target.setUTCDate(target.getUTCDate() + 1);
+        target.setUTCHours(0, 0, 0, 0);
+    } else {
+        // Next Monday at 00:00 UTC
+        target = new Date(now);
+        const daysUntilMonday = (8 - target.getUTCDay()) % 7 || 7;
+        target.setUTCDate(target.getUTCDate() + daysUntilMonday);
+        target.setUTCHours(0, 0, 0, 0);
+    }
+
+    const diff = target.getTime() - now.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
+    if (days > 0) {
+        return `${days}d ${hours}h`;
+    }
     return `${hours}h ${minutes}m`;
 }
 
@@ -152,6 +180,29 @@ function isSameUTCDay(timestampSeconds: number): boolean {
     return date.getUTCFullYear() === now.getUTCFullYear() &&
         date.getUTCMonth() === now.getUTCMonth() &&
         date.getUTCDate() === now.getUTCDate();
+}
+
+/**
+ * Check if timestamp is from same UTC week as now (week starts Monday)
+ */
+function isSameUTCWeek(timestampSeconds: number): boolean {
+    const date = new Date(timestampSeconds * 1000);
+    const now = new Date();
+
+    // Get Monday of each week
+    const getWeekStart = (d: Date): Date => {
+        const result = new Date(d);
+        const day = result.getUTCDay();
+        const diff = result.getUTCDate() - day + (day === 0 ? -6 : 1); // Monday
+        result.setUTCDate(diff);
+        result.setUTCHours(0, 0, 0, 0);
+        return result;
+    };
+
+    const dateWeekStart = getWeekStart(date);
+    const nowWeekStart = getWeekStart(now);
+
+    return dateWeekStart.getTime() === nowWeekStart.getTime();
 }
 
 // ============= CONSTANTS =============
