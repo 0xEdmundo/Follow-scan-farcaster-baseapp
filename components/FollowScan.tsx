@@ -6,9 +6,20 @@ import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { GMStreak } from '@/components/GMStreak';
 import { TipModal } from '@/components/TipModal';
+import { PremiumBadge } from '@/components/PremiumBadge';
+import { PremiumUnlockModal } from '@/components/PremiumUnlockModal';
 import { useAccount, useConnect } from 'wagmi';
-
-
+import {
+    isPremiumActive,
+    hasTodayCache,
+    getCachedData,
+    saveCacheData,
+    getTimeUntilNextScan,
+    getLastUpdateTime,
+    VISIBLE_FREE_USERS,
+    MAX_API_RESULTS,
+    CachedScanData
+} from '@/lib/premium';
 
 interface UserProfile {
     fid: number;
@@ -49,6 +60,11 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
     const [activeTab, setActiveTab] = useState<TabOption>('notFollowingBack');
     const [showTipModal, setShowTipModal] = useState(false);
     const [showAddPrompt, setShowAddPrompt] = useState(true);
+
+    // Premium and cache state
+    const [showPremiumModal, setShowPremiumModal] = useState(false);
+    const [isFromCache, setIsFromCache] = useState(false);
+    const [totalHiddenCount, setTotalHiddenCount] = useState(0);
 
     // Auto-connect wallet
     useEffect(() => {
@@ -107,7 +123,31 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
 
         setIsLoadingData(true);
         setDataError('');
+        setIsFromCache(false);
         console.log('[FollowScan] 🚀 Starting follow data scan...');
+
+        // Check for today's cache first
+        if (hasTodayCache(initialFid)) {
+            console.log('[FollowScan] 📦 Using cached data from today');
+            const cached = getCachedData(initialFid);
+            if (cached) {
+                setFollowers(cached.followers);
+                setFollowing(cached.following);
+                setNotFollowingBack(cached.notFollowingBack);
+                setMutualFollows(cached.mutualFollows);
+                setYouDontFollow(cached.youDontFollow);
+                setIsFromCache(true);
+                setHasScanned(true);
+                setIsLoadingData(false);
+
+                // Calculate hidden count for premium unlock
+                const totalPossible = cached.totalFollowers + cached.totalFollowing;
+                if (totalPossible > MAX_API_RESULTS) {
+                    setTotalHiddenCount(totalPossible - MAX_API_RESULTS);
+                }
+                return;
+            }
+        }
 
         try {
             const [followersResponse, followingResponse] = await Promise.all([
@@ -121,18 +161,26 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
             console.log('[FollowScan] Followers response:', followersData);
             console.log('[FollowScan] Following response:', followingData);
 
-            const userFollowers = Array.isArray(followersData.followers) ? followersData.followers : [];
-            const userFollowing = Array.isArray(followingData.following) ? followingData.following : [];
+            let userFollowers = Array.isArray(followersData.followers) ? followersData.followers : [];
+            let userFollowing = Array.isArray(followingData.following) ? followingData.following : [];
 
-            // Debug: Check first item structure
-            if (userFollowers.length > 0) {
-                console.log('[FollowScan] DEBUG - First follower raw:', userFollowers[0]);
-                console.log('[FollowScan] DEBUG - First follower fid:', userFollowers[0].fid);
+            // Store original counts for premium badge
+            const originalFollowersCount = userFollowers.length;
+            const originalFollowingCount = userFollowing.length;
+            const totalOriginal = originalFollowersCount + originalFollowingCount;
+
+            // Limit to MAX_API_RESULTS to save API quota
+            if (totalOriginal > MAX_API_RESULTS) {
+                console.log(`[FollowScan] ⚠️ Limiting results from ${totalOriginal} to ${MAX_API_RESULTS}`);
+                // Proportionally limit both
+                const ratio = MAX_API_RESULTS / totalOriginal;
+                userFollowers = userFollowers.slice(0, Math.floor(originalFollowersCount * ratio));
+                userFollowing = userFollowing.slice(0, Math.floor(originalFollowingCount * ratio));
+                setTotalHiddenCount(totalOriginal - (userFollowers.length + userFollowing.length));
             }
 
             // Map followers - handle both direct and nested user object
             const mappedFollowers: UserProfile[] = userFollowers.map((item: any) => {
-                // Neynar might return { user: {...} } or directly {...}
                 const u = item.user || item;
                 return {
                     fid: u.fid,
@@ -161,11 +209,6 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                 };
             });
 
-            // Debug: Check mapped result
-            if (mappedFollowers.length > 0) {
-                console.log('[FollowScan] DEBUG - Mapped first follower:', mappedFollowers[0]);
-            }
-
             console.log(`[FollowScan] ✅ Fetched ${mappedFollowers.length} followers, ${mappedFollowing.length} following`);
 
             if (mappedFollowers.length === 0 && mappedFollowing.length === 0) {
@@ -174,8 +217,33 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
 
             setFollowers(mappedFollowers);
             setFollowing(mappedFollowing);
-            calculateRelationships(mappedFollowers, mappedFollowing);
+
+            // Calculate relationships
+            const followerFids = new Set(mappedFollowers.map((f) => f.fid));
+            const followingFids = new Set(mappedFollowing.map((f) => f.fid));
+            const notFollowing = mappedFollowing.filter((f) => !followerFids.has(f.fid));
+            const mutual = mappedFollowing.filter((f) => followerFids.has(f.fid));
+            const youDont = mappedFollowers.filter((f) => !followingFids.has(f.fid));
+
+            setNotFollowingBack(notFollowing);
+            setMutualFollows(mutual);
+            setYouDontFollow(youDont);
             setHasScanned(true);
+
+            // Save to cache
+            const cacheData: CachedScanData = {
+                timestamp: Math.floor(Date.now() / 1000),
+                fid: initialFid,
+                followers: mappedFollowers,
+                following: mappedFollowing,
+                notFollowingBack: notFollowing,
+                mutualFollows: mutual,
+                youDontFollow: youDont,
+                totalFollowers: originalFollowersCount,
+                totalFollowing: originalFollowingCount
+            };
+            saveCacheData(cacheData);
+            console.log('[FollowScan] 💾 Data cached for today');
 
         } catch (err) {
             console.error('[FollowScan] Scan failed:', err);
@@ -303,8 +371,17 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-            {/* Tip Modal */}
+            {/* Modals */}
             <TipModal isOpen={showTipModal} onClose={() => setShowTipModal(false)} />
+            <PremiumUnlockModal
+                isOpen={showPremiumModal}
+                onClose={() => setShowPremiumModal(false)}
+                onSuccess={() => {
+                    // Refresh the view to show all users
+                    setShowPremiumModal(false);
+                }}
+                hiddenCount={getCurrentList().length > VISIBLE_FREE_USERS ? getCurrentList().length - VISIBLE_FREE_USERS : 0}
+            />
 
             {/* Header */}
             <header className="sticky top-0 z-50 backdrop-blur-lg bg-white/80 dark:bg-gray-900/80 border-b border-gray-200 dark:border-gray-700">
@@ -312,6 +389,7 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                     <div className="flex items-center gap-2">
                         <img src="/icon.jpg" alt="Follow Scan" className="w-8 h-8 rounded-lg" />
                         <span className="font-bold text-lg text-purple-700 dark:text-purple-400">Follow Scan</span>
+                        <PremiumBadge address={address} />
                     </div>
                     <div className="flex items-center gap-2">
                         <button
@@ -409,6 +487,14 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                                     </div>
                                 </div>
 
+                                {/* Cache Info */}
+                                {isFromCache && (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 text-center">
+                                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                                            📅 Cached data from {getLastUpdateTime(initialFid)} • Next refresh in {getTimeUntilNextScan(initialFid)}
+                                        </p>
+                                    </div>
+                                )}
 
                             </>
                         )}
@@ -535,50 +621,93 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                                 </CardContent>
                             </Card>
                         ) : (
-                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {currentList.map((profile) => (
-                                    <Card key={profile.fid} className="hover:shadow-xl transition-all duration-300 border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 group">
-                                        <CardContent className="pt-5 pb-4">
-                                            <div className="flex items-start gap-3">
-                                                <img
-                                                    src={profile.pfpUrl}
-                                                    alt={profile.username}
-                                                    className="w-12 h-12 rounded-full border-2 border-purple-200 dark:border-purple-700 object-cover"
-                                                />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-bold text-gray-800 dark:text-white truncate">{profile.displayName}</p>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm text-gray-500 dark:text-gray-400">@{profile.username}</span>
-                                                        {profile.powerBadge && (
-                                                            <span className="text-purple-500" title="Power Badge">⚡</span>
-                                                        )}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{profile.followerCount.toLocaleString()} followers</p>
+                            <>
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {currentList.slice(0, isPremiumActive(address || '') ? currentList.length : VISIBLE_FREE_USERS).map((profile) => (
+                                        <Card key={profile.fid} className="hover:shadow-xl transition-all duration-300 border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 group">
+                                            <CardContent className="pt-5 pb-4">
+                                                <div className="flex items-start gap-3">
+                                                    <img
+                                                        src={profile.pfpUrl}
+                                                        alt={profile.username}
+                                                        className="w-12 h-12 rounded-full border-2 border-purple-200 dark:border-purple-700 object-cover"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-bold text-gray-800 dark:text-white truncate">{profile.displayName}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm text-gray-500 dark:text-gray-400">@{profile.username}</span>
+                                                            {profile.powerBadge && (
+                                                                <span className="text-purple-500" title="Power Badge">⚡</span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{profile.followerCount.toLocaleString()} followers</p>
 
-                                                    {/* Neynar Score */}
-                                                    <div className="flex items-center gap-1 mt-1">
-                                                        <span className="text-xs text-gray-400 dark:text-gray-500">Neynar Score:</span>
-                                                        <span className={`text-sm font-semibold ${getScoreColor(profile.neynarScore)}`}>
-                                                            {profile.neynarScore.toFixed(2)}
-                                                        </span>
+                                                        {/* Neynar Score */}
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            <span className="text-xs text-gray-400 dark:text-gray-500">Neynar Score:</span>
+                                                            <span className={`text-sm font-semibold ${getScoreColor(profile.neynarScore)}`}>
+                                                                {profile.neynarScore.toFixed(2)}
+                                                            </span>
+                                                        </div>
                                                     </div>
+
+                                                    {/* Visit Profile Button */}
+                                                    <button
+                                                        onClick={() => openProfile(profile.username)}
+                                                        className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors opacity-70 group-hover:opacity-100"
+                                                        title="Visit Profile"
+                                                    >
+                                                        <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
 
-                                                {/* Visit Profile Button */}
-                                                <button
-                                                    onClick={() => openProfile(profile.username)}
-                                                    className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors opacity-70 group-hover:opacity-100"
-                                                    title="Visit Profile"
+                                {/* Blurred Users + Unlock Banner (for non-premium users) */}
+                                {!isPremiumActive(address || '') && currentList.length > VISIBLE_FREE_USERS && (
+                                    <div className="mt-6 relative">
+                                        {/* Blurred preview of remaining users */}
+                                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 blur-sm opacity-50 pointer-events-none">
+                                            {currentList.slice(VISIBLE_FREE_USERS, VISIBLE_FREE_USERS + 3).map((profile) => (
+                                                <Card key={profile.fid} className="border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                                    <CardContent className="pt-5 pb-4">
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-600" />
+                                                            <div className="flex-1">
+                                                                <p className="font-bold text-gray-800 dark:text-white">Hidden User</p>
+                                                                <p className="text-sm text-gray-500">@hidden</p>
+                                                            </div>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
+                                            ))}
+                                        </div>
+
+                                        {/* Unlock Banner Overlay */}
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 mx-4 max-w-md text-center border-2 border-purple-300 dark:border-purple-700">
+                                                <div className="text-4xl mb-3">🔒</div>
+                                                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+                                                    {(currentList.length - VISIBLE_FREE_USERS).toLocaleString()} more users hidden
+                                                </h3>
+                                                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                                    Unlock full access for 30 days to see everyone who doesn&apos;t follow you back
+                                                </p>
+                                                <Button
+                                                    onClick={() => setShowPremiumModal(true)}
+                                                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold px-8 py-3"
                                                 >
-                                                    <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                    </svg>
-                                                </button>
+                                                    ✨ Unlock All - ~$0.50
+                                                </Button>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </>
                 )}
