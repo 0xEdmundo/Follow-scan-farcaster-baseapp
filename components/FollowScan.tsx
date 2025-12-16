@@ -623,9 +623,13 @@ export function FollowScan({ initialFid, isFrameAdded = true, onAddFrame, openUr
                         ) : (
                             <>
                                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {currentList.slice(0, isPremiumActive(address || '') ? currentList.length : VISIBLE_FREE_USERS).map((profile) => (
-                                        <Card key={profile.fid} className="hover:shadow-xl transition-all duration-300 border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 group">
-                                            <CardContent className="pt-5 pb-4">
+                                    {currentList.slice(0, isPremiumActive(address || '') ? currentList.length : VISIBLE_FREE_USERS).map((profile, index) => (
+                                        <Card key={profile.fid} className="hover:shadow-xl transition-all duration-300 border-purple-100 dark:border-gray-700 bg-white dark:bg-gray-800 group relative">
+                                            {/* Ranking Badge */}
+                                            <div className="absolute -top-2 -left-2 w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-800 z-10">
+                                                <span className="text-white text-xs font-bold">{index + 1}</span>
+                                            </div>
+                                            <CardContent className="pt-5 pb-4 pl-6">
                                                 <div className="flex items-start gap-3">
                                                     <img
                                                         src={profile.pfpUrl}

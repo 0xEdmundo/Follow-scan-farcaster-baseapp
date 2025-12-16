@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAccount, useSendTransaction, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, encodeFunctionData } from 'viem';
-import { Attribution } from 'ox/erc8021';
+import { parseEther } from 'viem';
 import { Button } from '@/components/ui/button';
 import { CONTRACTS } from '@/lib/web3-config';
-import { activatePremium, PREMIUM_PRICE_ETH, BUILDER_CODE } from '@/lib/premium';
+import { activatePremium, PREMIUM_PRICE_ETH } from '@/lib/premium';
 
 interface PremiumUnlockModalProps {
     isOpen: boolean;
@@ -40,16 +39,10 @@ export function PremiumUnlockModal({ isOpen, onClose, onSuccess, hiddenCount }: 
         setIsPaying(true);
 
         try {
-            // Generate builder code attribution suffix
-            const dataSuffix = Attribution.toDataSuffix({
-                codes: [BUILDER_CODE]
-            });
-
-            // Send ETH with builder code
+            // Send simple ETH payment (no data to avoid revert on EOA)
             sendTransaction({
                 to: CONTRACTS.TIP_ADDRESS,
                 value: parseEther(PREMIUM_PRICE_ETH),
-                data: dataSuffix as `0x${string}`,
             });
         } catch (error) {
             console.error('Payment failed:', error);

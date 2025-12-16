@@ -156,7 +156,7 @@ function isSameUTCDay(timestampSeconds: number): boolean {
 
 // ============= CONSTANTS =============
 
-export const VISIBLE_FREE_USERS = 50; // Number of users shown without blur
+export const VISIBLE_FREE_USERS = 30; // Number of users shown without blur
 export const MAX_API_RESULTS = 2500; // Maximum results from API
 export const PREMIUM_PRICE_ETH = '0.0002'; // ~$0.50 @ $2500/ETH
 export const BUILDER_CODE = 'bc_xvyf9fz7';
